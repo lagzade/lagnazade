@@ -93,3 +93,56 @@ body {
     opacity: 0;
   }
 }
+.page {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.page.active {
+  display: flex;
+}
+
+.menu-btn {
+  background: rgba(255,255,255,0.2);
+  color: white;
+  border: none;
+  padding: 15px 30px;
+  margin: 10px;
+  border-radius: 50px;
+  font-size: 1.3rem;
+  backdrop-filter: blur(10px);
+  width: 80%;
+  max-width: 400px;
+}
+
+.back-btn {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: rgba(0,0,0,0.3);
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 50%;
+  font-size: 1.5rem;
+}
+
+.shop-item {
+  background: rgba(255,255,255,0.15);
+  padding: 20px;
+  margin: 15px;
+  border-radius: 20px;
+  width: 80%;
+  text-align: center;
+  backdrop-filter: blur(10px);
+}
+
+.subtitle {
+  font-size: 1.3rem;
+  margin-bottom: 40px;
+  opacity: 0.9;
+}
