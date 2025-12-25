@@ -1,55 +1,35 @@
 <!DOCTYPE html>
-<html lang="fa" dir="rtl">
+<html lang="fa">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>سکه جمع کن!</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8">
+    <title>بازی تحت وب</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-  <div class="container">
+    <h1>بازی ساده</h1>
+    <p>موجودی شما: <span id="balance">0</span> coins</p>
+    <p>این یک بازی نمونه است. برای افزایش موجودی، به ربات برگردید و بخرید.</p>
+    <button onclick="buyMore()">خرید بیشتر (بازگشت به ربات)</button>
 
-    <!-- صفحه ۱: منو اصلی -->
-    <div id="menu-page" class="page active">
-      <h1 class="title">سکه جمع کن! 🪙</h1>
-      <p class="subtitle">به بازی خوش اومدی!</p>
-      
-      <button class="menu-btn" onclick="showPage('game-page')">🎮 شروع بازی</button>
-      <button class="menu-btn" onclick="showPage('shop-page')">🛒 فروشگاه</button>
-      <button class="menu-btn" onclick="sendDataToBot()">📤 ارسال امتیاز به بات</button>
-      <button class="menu-btn" onclick="Telegram.WebApp.close()">🚪 خروج</button>
-    </div>
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready();
 
-    <!-- صفحه ۲: بازی اصلی -->
-    <div id="game-page" class="page">
-      <button class="back-btn" onclick="showPage('menu-page')">← برگشت</button>
-      <h1 class="title">بازی کن!</h1>
-      <div class="score">امتیاز: <span id="score">0</span></div>
-      
-      <div class="coin-area" id="coinArea">
-        <div class="big-coin">🪙</div>
-      </div>
+        const user = tg.initDataUnsafe.user;
+        if (user) {
+            fetch('http://your-flask-server-url:5000/get_balance?user_id=' + user.id)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('balance').innerText = data.balance;
+                })
+                .catch(error => console.error('Error:', error));
+        }
 
-      <div class="floating-particles"></div>
-    </div>
-
-    <!-- صفحه ۳: فروشگاه -->
-    <div id="shop-page" class="page">
-      <button class="back-btn" onclick="showPage('menu-page')">← برگشت</button>
-      <h1 class="title">فروشگاه 🛒</h1>
-      <p>با امتیازت بوستر بخر!</p>
-      
-      <div class="shop-item" onclick="buyBooster(2)">
-        <span>⚡ ضربدر ۲ (هزینه: ۱۰۰۰ امتیاز)</span>
-      </div>
-      <div class="shop-item" onclick="buyBooster(5)">
-        <span>🔥 ضربدر ۵ (هزینه: ۵۰۰۰ امتیاز)</span>
-      </div>
-    </div>
-
-  </div>
-
-  <script src="script.js"></script>
+        function buyMore() {
+            // بازگشت به ربات با deep link برای خرید
+            tg.openTelegramLink('https://t.me/your_bot_username?start=buy');
+            tg.close();
+        }
+    </script>
 </body>
 </html>
