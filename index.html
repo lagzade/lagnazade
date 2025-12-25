@@ -1,34 +1,41 @@
 <!DOCTYPE html>
-<html lang="fa">
+<html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>بازی تحت وب</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بازی کوین</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 20px; background: #f0f0f0; }
+        #balance { font-size: 2em; color: #d4af37; }
+    </style>
 </head>
 <body>
-    <h1>بازی ساده</h1>
-    <p>موجودی شما: <span id="balance">0</span> coins</p>
-    <p>این یک بازی نمونه است. برای افزایش موجودی، به ربات برگردید و بخرید.</p>
-    <button onclick="buyMore()">خرید بیشتر (بازگشت به ربات)</button>
+    <h1>🎮 بازی جمع‌آوری کوین</h1>
+    <p>موجودی شما:</p>
+    <div id="balance">در حال بارگذاری...</div>
+    <br>
+    <button onclick="buyMore()" style="padding:15px; font-size:18px;">💰 خرید کوین (۱ ستاره = ۱۰ کوین)</button>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.ready();
+        tg.expand();
 
-        const user = tg.initDataUnsafe.user;
-        if (user) {
-            fetch('http://your-flask-server-url:5000/get_balance?user_id=' + user.id)
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('balance').innerText = data.balance;
-                })
-                .catch(error => console.error('Error:', error));
-        }
+        // ارسال درخواست موجودی به ربات
+        tg.sendData("get_balance");  // این باعث می‌شه ربات هندلر web_app_data رو فراخوانی کنه
+
+        // دریافت جواب از ربات
+        tg.onEvent('webAppDataResponse', (data) => {
+            if (data.text.startsWith("BALANCE:")) {
+                const balance = data.text.split(":")[1];
+                document.getElementById("balance").innerText = balance + " کوین 🪙";
+            }
+        });
 
         function buyMore() {
-            // بازگشت به ربات با deep link برای خرید
-            tg.openTelegramLink('https://t.me/your_bot_username?start=buy');
-            tg.close();
+            tg.close();  // بستن وب‌اپ و برگشت به ربات
+            // کاربر حالا می‌تونه /buy بزنه یا دکمه‌ای در ربات داشته باشی
         }
     </script>
 </body>
