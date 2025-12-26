@@ -7,19 +7,21 @@
     <style>
         body { margin: 0; overflow: hidden; background: #000; }
         canvas { display: block; }
-        #menu { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0, 0, 0, 0.8); color: #fff; padding: 20px; border-radius: 10px; text-align: center; font-family: Arial; }
-        #menu button { margin: 10px; padding: 10px 20px; font-size: 16px; cursor: pointer; }
+        #menu { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,50,0,0.9); color: #fff; padding: 30px; border-radius: 15px; text-align: center; font-family: Arial; border: 3px solid #8B4513; }
+        #menu button { margin: 15px; padding: 15px 30px; font-size: 20px; cursor: pointer; background: #228B22; color: white; border: none; border-radius: 10px; }
+        #menu button:hover { background: #006400; }
     </style>
 </head>
 <body>
     <canvas id="gameCanvas"></canvas>
     <div id="menu">
-        <p>می‌خواهید چوب بفروشید؟</p>
-        <button onclick="sellWood()">فروختن چوب</button>
-        <button onclick="closeMenu()">بستن منو</button>
+        <h2>به بازارچه رسیدی!</h2>
+        <p>می‌خوای چوب بفروشی؟ (هر چوب = ۲ سکه)</p>
+        <button onclick="sellWood()">آره، بفروش</button>
+        <button onclick="closeMenu()">نه، بعداً</button>
     </div>
-    <audio id="collectSound" src="https://www.soundjay.com/buttons/beep-01a.mp3"></audio>
-    <audio id="bgMusic" src="https://www.bensound.com/bensound-music/bensound-ukulele.mp3" loop></audio>
+    <audio id="collectSound" src="https://www.soundjay.com/buttons/sounds/button-09.mp3"></audio> <!-- صدای جمع آیتم -->
+    <audio id="bgMusic" src="https://cdn.glitch.global/8e0a3f5c-1e9f-4e9b-9c9e-3b9d8e0f8e0f/forest-adventure-loop.mp3" loop></audio> <!-- موزیک جنگلی آرام -->
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
@@ -39,41 +41,48 @@
         const mapWidth = cellSize * mapCells;
         const mapHeight = cellSize * mapCells;
 
-        // تصاویر و صدا
+        // تصاویر مستقیم رایگان (hotlink کار می‌کنه)
         const bgImg = new Image();
-        bgImg.src = 'https://opengameart.org/sites/default/files/forest_tileset_0.png'; // تکسچر جنگل
+        bgImg.src = 'https://img.itch.zone/aW1hZ2UvNDU5NTAzLzIzMzc2NzYuanBn/original/kpTywm.jpg'; // forest background cute
 
         const playerImg = new Image();
-        playerImg.src = 'https://img.itch.zone/aW1hZ2UvMjgxMDUwOC8xNjc4NTgxNi5qcGc=/original/tphitC.jpg';
+        playerImg.src = 'https://img.itch.zone/aW1hZ2UvMjgxMDUwOC8xNjc4NTgxNi5qcGc=/original/tphitC.jpg'; // sprite sheet 4 direction
 
         const treeImg = new Image();
-        treeImg.src = 'https://opengameart.org/sites/default/files/free_peview_0.png';
+        treeImg.src = 'https://opengameart.org/sites/default/files/styles/medium/public/tree_54.png'; // درخت ساده
 
         const marketImg = new Image();
-        marketImg.src = 'https://img.craftpix.net/2025/08/Pixel-Art-Market-Square-RPG-Shop-and-NPC-Assets-Pack4-720x480.webp';
+        marketImg.src = 'https://img.craftpix.net/2025/08/Pixel-Art-Market-Square-RPG-Shop-and-NPC-Assets-Pack3-720x480.webp'; // غرفه بازار
 
         let player = { x: mapWidth / 2, y: mapHeight / 2, size: cellSize / 5, speed: cellSize / 150, frame: 0, direction: 'down' };
         let target = { x: player.x, y: player.y };
         let camera = { x: 0, y: 0 };
         let wood = 0, coins = 0;
+        let isMenuOpen = false;
+
         const trees = [
             { x: cellSize * 0.3, y: cellSize * 0.3, collected: false },
             { x: cellSize * 0.7, y: cellSize * 0.2, collected: false },
             { x: cellSize * 0.4, y: cellSize * 0.6, collected: false },
             { x: cellSize * 0.6, y: cellSize * 0.5, collected: false }
         ];
-        let isMenuOpen = false;
 
-        canvas.addEventListener('click', handleClick);
-        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleClick(e.touches[0]); });
-
-        function handleClick(e) {
+        canvas.addEventListener('click', (e) => {
             if (!isMenuOpen) {
                 const rect = canvas.getBoundingClientRect();
                 target.x = e.clientX - rect.left + camera.x;
                 target.y = e.clientY - rect.top + camera.y;
             }
-        }
+        });
+
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (!isMenuOpen) {
+                const rect = canvas.getBoundingClientRect();
+                target.x = e.touches[0].clientX - rect.left + camera.x;
+                target.y = e.touches[0].clientY - rect.top + camera.y;
+            }
+        });
 
         function updateSizes() {
             cellSize = Math.min(canvas.width, canvas.height) / mapCells * 1.5;
@@ -84,34 +93,38 @@
         function gameLoop() {
             updateSizes();
 
-            // حرکت
             const dx = target.x - player.x;
             const dy = target.y - player.y;
             const dist = Math.hypot(dx, dy);
             if (dist > 10) {
                 player.x += (dx / dist) * player.speed;
                 player.y += (dy / dist) * player.speed;
-                player.frame = (player.frame + 0.2) % 4;
+                player.frame = (player.frame + 0.15) % 4;
 
                 if (Math.abs(dx) > Math.abs(dy)) player.direction = dx > 0 ? 'right' : 'left';
                 else player.direction = dy > 0 ? 'down' : 'up';
             } else player.frame = 0;
 
-            // دوربین
             camera.x = player.x - canvas.width / 2;
             camera.y = player.y - canvas.height / 2;
             camera.x = Math.max(0, Math.min(camera.x, mapWidth - canvas.width));
             camera.y = Math.max(0, Math.min(camera.y, mapHeight - canvas.height));
 
-            // رندر
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // background تکسچر
-            if (bgImg.complete) ctx.drawImage(bgImg, 0, 0, 512, 512, -camera.x, -camera.y, mapWidth, mapHeight);
+            // background تکرارشونده
+            if (bgImg.complete) {
+                const pattern = ctx.createPattern(bgImg, 'repeat');
+                ctx.fillStyle = pattern;
+                ctx.fillRect(-camera.x, -camera.y, mapWidth, mapHeight);
+            } else {
+                ctx.fillStyle = '#228B22';
+                ctx.fillRect(-camera.x, -camera.y, mapWidth, mapHeight);
+            }
 
             // مرز خانه‌ها
             ctx.strokeStyle = '#000';
-            ctx.lineWidth = cellSize / 50;
+            ctx.lineWidth = cellSize / 40;
             for (let i = 0; i <= mapCells; i++) {
                 ctx.beginPath();
                 ctx.moveTo(i * cellSize - camera.x, -camera.y);
@@ -121,74 +134,4 @@
                 ctx.stroke();
             }
 
-            // درخت‌ها
-            if (treeImg.complete) {
-                trees.forEach(tree => {
-                    if (!tree.collected) {
-                        ctx.drawImage(treeImg, 100, 100, 100, 150, tree.x - camera.x - player.size/2, tree.y - camera.y - player.size, player.size * 1.5, player.size * 2);
-                    }
-                });
-            }
-
-            // جمع چوب
-            trees.forEach(tree => {
-                if (!tree.collected && Math.hypot(player.x - tree.x, player.y - tree.y) < player.size * 1.5) {
-                    wood += 1;
-                    tree.collected = true;
-                    collectSound.play();
-                }
-            });
-
-            // بازارچه
-            if (marketImg.complete && player.x < cellSize && player.y > mapHeight - cellSize) {
-                ctx.drawImage(marketImg, cellSize * 0.2 - camera.x, mapHeight - cellSize * 0.8 - camera.y, cellSize * 0.6, cellSize * 0.5);
-                if (!isMenuOpen) {
-                    if (confirm('می‌خواهید چوب بفروشید؟')) {
-                        isMenuOpen = true;
-                        menu.style.display = 'block';
-                    }
-                }
-            } else if (isMenuOpen && !menu.contains(document.activeElement)) {
-                closeMenu();
-            }
-
-            // کاراکتر
-            if (playerImg.complete) {
-                let row = { down: 0, up: 3, right: 2, left: 1 }[player.direction];
-                let col = Math.floor(player.frame);
-                ctx.drawImage(playerImg, col * 64, row * 64, 64, 64, player.x - camera.x - player.size/2, player.y - camera.y - player.size/2, player.size, player.size);
-            }
-
-            // HUD
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height / 10);
-            ctx.fillStyle = '#FFF';
-            ctx.font = `${canvas.width / 20}px Arial`;
-            ctx.fillText(`چوب: ${wood}   سکه: ${coins}`, canvas.width / 2 - ctx.measureText(`چوب: ${wood}   سکه: ${coins}`).width / 2, canvas.height / 20);
-
-            requestAnimationFrame(gameLoop);
-        }
-
-        function sellWood() {
-            if (wood > 0) {
-                coins += wood * 2;
-                wood = 0;
-            }
-            closeMenu();
-        }
-
-        function closeMenu() {
-            isMenuOpen = false;
-            menu.style.display = 'none';
-        }
-
-        // شروع
-        window.onload = () => {
-            bgMusic.volume = 0.3;
-            bgMusic.play();
-            if (playerImg.complete && treeImg.complete && marketImg.complete && bgImg.complete) gameLoop();
-            else [playerImg, treeImg, marketImg, bgImg].forEach(img => img.onload = gameLoop);
-        };
-    </script>
-</body>
-</html>
+            // درخت
