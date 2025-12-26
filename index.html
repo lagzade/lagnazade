@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>بازی جنگل</title>
+    <title>بازی جنگل من</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; }
         canvas { display: block; }
@@ -15,32 +15,38 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        // اندازه viewport (صفحه نمایش)
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
-        const viewWidth = canvas.width;
-        const viewHeight = canvas.height;
 
-        // نقشه بزرگ 3x3 خانه (هر خانه 400px)
-        const cellSize = 400;
+        const cellSize = 600; // هر خانه بزرگ‌تر برای تصاویر بهتر
         const mapWidth = cellSize * 3;
         const mapHeight = cellSize * 3;
 
-        // کاراکتر
-        let player = { x: mapWidth / 2, y: mapHeight / 2, size: 30, speed: 3 };
-        let target = { x: player.x, y: player.y }; // هدف حرکت
+        // تصاویر
+        const playerImg = new Image();
+        playerImg.src = 'https://img.craftpix.net/2024/07/Free-Base-4-Direction-Male-Character-Pixel-Art.webp'; // sprite sheet کاراکتر
+
+        const treeImg = new Image();
+        treeImg.src = 'https://opengameart.org/sites/default/files/free_peview_0.png'; // tileset با درخت‌ها (از نمونه درخت استفاده می‌کنه)
+
+        const marketImg = new Image();
+        marketImg.src = 'https://img.craftpix.net/2025/08/Pixel-Art-Market-Square-RPG-Shop-and-NPC-Assets-Pack4-720x480.webp'; // غرفه بازار
+
+        // موقعیت کاراکتر
+        let player = { x: mapWidth / 2, y: mapHeight / 2, width: 64, height: 64, speed: 4, direction: 'down' };
+        let target = { x: player.x, y: player.y };
         let camera = { x: 0, y: 0 };
 
         // موجودی
         let wood = 0;
         let coins = 0;
 
-        // درخت‌ها در جنگل بالا چپ (خانه 0,0)
+        // درخت‌ها در جنگل بالا چپ
         const trees = [
-            { x: 100, y: 100, collected: false },
-            { x: 250, y: 150, collected: false },
-            { x: 150, y: 280, collected: false },
-            { x: 300, y: 80, collected: false }
+            { x: 200, y: 200, collected: false },
+            { x: 400, y: 150, collected: false },
+            { x: 150, y: 400, collected: false },
+            { x: 350, y: 350, collected: false }
         ];
 
         // کلیک برای حرکت
@@ -50,95 +56,97 @@
             target.y = e.clientY - rect.top + camera.y;
         });
 
-        // loop بازی
         function gameLoop() {
-            // حرکت کاراکتر به سمت هدف
+            // حرکت کاراکتر
             const dx = target.x - player.x;
             const dy = target.y - player.y;
-            const distance = Math.hypot(dx, dy);
-            if (distance > 5) {
-                player.x += (dx / distance) * player.speed;
-                player.y += (dy / distance) * player.speed;
+            const dist = Math.hypot(dx, dy);
+            if (dist > 5) {
+                player.x += (dx / dist) * player.speed;
+                player.y += (dy / dist) * player.speed;
+
+                // جهت کاراکتر (ساده)
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    player.direction = dx > 0 ? 'right' : 'left';
+                } else {
+                    player.direction = dy > 0 ? 'down' : 'up';
+                }
             }
 
-            // به‌روزرسانی دوربین (کاراکتر در مرکز)
-            camera.x = player.x - viewWidth / 2;
-            camera.y = player.y - viewHeight / 2;
-
-            // محدود کردن دوربین به مرز نقشه
-            camera.x = Math.max(0, Math.min(camera.x, mapWidth - viewWidth));
-            camera.y = Math.max(0, Math.min(camera.y, mapHeight - viewHeight));
+            // دوربین follow
+            camera.x = player.x - canvas.width / 2;
+            camera.y = player.y - canvas.height / 2;
+            camera.x = Math.max(0, Math.min(camera.x, mapWidth - canvas.width));
+            camera.y = Math.max(0, Math.min(camera.y, mapHeight - canvas.height));
 
             // پاک کردن
-            ctx.clearRect(0, 0, viewWidth, viewHeight);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             // background جنگل
             ctx.fillStyle = '#228B22';
-            ctx.fillRect(0 - camera.x % cellSize, 0 - camera.y % cellSize, mapWidth, mapHeight);
+            ctx.fillRect(-camera.x, -camera.y, mapWidth, mapHeight);
 
             // مرز خانه‌ها
             ctx.strokeStyle = '#000';
-            ctx.lineWidth = 4;
+            ctx.lineWidth = 6;
             for (let i = 0; i <= 3; i++) {
                 ctx.beginPath();
-                ctx.moveTo(i * cellSize - camera.x, 0 - camera.y);
+                ctx.moveTo(i * cellSize - camera.x, -camera.y);
                 ctx.lineTo(i * cellSize - camera.x, mapHeight - camera.y);
-                ctx.moveTo(0 - camera.x, i * cellSize - camera.y);
+                ctx.moveTo(-camera.x, i * cellSize - camera.y);
                 ctx.lineTo(mapWidth - camera.x, i * cellSize - camera.y);
                 ctx.stroke();
             }
 
-            // رندر درخت‌ها (فقط در جنگل بالا چپ)
-            ctx.fillStyle = '#8B4513';
-            trees.forEach(tree => {
-                if (!tree.collected && tree.x < cellSize && tree.y < cellSize) {
-                    ctx.fillRect(tree.x - camera.x - 15, tree.y - camera.y - 30, 30, 60); // تنه + تاج ساده
-                    ctx.fillStyle = '#006400';
-                    ctx.fillRect(tree.x - camera.x - 25, tree.y - camera.y - 50, 50, 40);
-                    ctx.fillStyle = '#8B4513';
-                }
-            });
+            // رندر درخت‌ها (اگر لود شده)
+            if (treeImg.complete) {
+                trees.forEach(tree => {
+                    if (!tree.collected) {
+                        ctx.drawImage(treeImg, 0, 0, 200, 200, tree.x - camera.x - 50, tree.y - camera.y - 100, 100, 150); // برش ساده از tileset
+                    }
+                });
+            }
 
-            // چک جمع‌آوری چوب (نزدیک درخت + فاصله کم)
+            // رندر بازار
+            if (marketImg.complete) {
+                ctx.drawImage(marketImg, 200 - camera.x, mapHeight - 300 - camera.y, 200, 150);
+            }
+
+            // جمع‌آوری چوب
             trees.forEach(tree => {
-                if (!tree.collected && Math.hypot(player.x - tree.x, player.y - tree.y) < 50) {
+                if (!tree.collected && Math.hypot(player.x - tree.x, player.y - tree.y) < 80) {
                     wood += 1;
                     tree.collected = true;
                 }
             });
 
-            // چک فروش در بازار (خانه پایین چپ)
-            if (player.x < cellSize && player.y > mapHeight - cellSize) {
-                if (wood > 0) {
-                    coins += wood * 2;
-                    wood = 0;
-                }
+            // فروش در بازار
+            if (player.x < cellSize && player.y > mapHeight - cellSize && wood > 0) {
+                coins += wood * 2;
+                wood = 0;
             }
 
-            // رندر بازار (غرفه ساده)
-            if (player.x < cellSize && player.y > mapHeight - cellSize || true) { // همیشه رندر اگر نزدیک
-                ctx.fillStyle = '#FFD700';
-                ctx.fillRect(150 - camera.x, mapHeight - 150 - camera.y, 100, 60); // غرفه
+            // رندر کاراکتر (اگر لود شده - برش ساده down)
+            if (playerImg.complete) {
+                ctx.drawImage(playerImg, 0, 0, 64, 64, player.x - camera.x - 32, player.y - camera.y - 48, 64, 64);
+            } else {
+                // fallback ساده
+                ctx.fillStyle = '#00BFFF';
+                ctx.fillRect(player.x - camera.x - 32, player.y - camera.y - 32, 64, 64);
             }
 
-            // رندر کاراکتر
-            ctx.fillStyle = '#00BFFF';
-            ctx.beginPath();
-            ctx.arc(player.x - camera.x, player.y - camera.y - 20, player.size / 2, 0, Math.PI * 2);
-            ctx.fill(); // سر
-            ctx.fillRect(player.x - camera.x - player.size / 2, player.y - camera.y - 10, player.size, 40); // بدن
-
-            // نمایش موجودی
+            // موجودی
             ctx.fillStyle = '#FFF';
-            ctx.font = '24px Arial';
-            ctx.fillText(`چوب: ${wood}   سکه: ${coins}`, 20, 40);
+            ctx.font = '30px Arial';
+            ctx.fillText(`چوب: ${wood}   سکه: ${coins}`, 20, 50);
 
             requestAnimationFrame(gameLoop);
         }
 
-        gameLoop();
+        // شروع بعد از لود تصاویر
+        Promise.all([new Promise(res => playerImg.onload = res), new Promise(res => treeImg.onload = res), new Promise(res => marketImg.onload = res)])
+            .then(() => gameLoop());
 
-        // resize برای موبایل/دسکتاپ
         window.addEventListener('resize', () => {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
