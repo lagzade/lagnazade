@@ -1,60 +1,16 @@
+<!-- index.html -->
 <!DOCTYPE html>
-<html lang="fa" dir="rtl">
+<html lang="fa">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>بازی کوین</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        body { font-family: sans-serif; text-align: center; padding: 20px; background: #f0f0f0; }
-        #balance { font-size: 2.5em; color: #d4af37; margin: 30px; }
-        button { padding: 15px 30px; font-size: 18px; background: #0088cc; color: white; border: none; border-radius: 10px; }
-    </style>
+  <meta charset="UTF-8">
+  <title>Forest Game Mini App</title>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    canvas { background: #228B22; } /* رنگ سبز جنگل */
+  </style>
 </head>
 <body>
-    <h1>🎮 بازی جمع‌آوری کوین</h1>
-    <p>موجودی فعلی شما:</p>
-    <div id="balance">در حال بارگذاری...</div>
-    <br><br>
-    <button id="buyButton">💰 خرید ۱۰ کوین (فقط ۱ استارز)</button>
-
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
-
-        // درخواست موجودی از ربات
-        tg.sendData("get_balance");
-
-        // دریافت جواب موجودی
-        tg.onEvent('webAppDataResponse', (data) => {
-            if (data.text && data.text.startsWith("BALANCE:")) {
-                const balance = data.text.split(":")[1];
-                document.getElementById("balance").innerText = balance + " 🪙";
-            }
-        });
-
-        // دکمه خرید — ایجاد لینک پرداخت و باز کردن آن
-        document.getElementById("buyButton").addEventListener("click", () => {
-            // ایجاد لینک پرداخت مستقیم (invoice link)
-            const invoiceLink = `https://t.me/${tg.initDataUnsafe.bot_username || "YOUR_BOT_USERNAME"}?start=buy10coins`;
-            // یا بهتر: استفاده از متد جدید تلگرام برای پرداخت داخل وب‌اپ
-            tg.openInvoice("https://t.me/YourBotUsername/invoice/add_10_coins"); // اگر invoice slug داشته باشی
-
-            // بهترین روش: ارسال درخواست به ربات برای ایجاد invoice
-            tg.sendData("buy_10_coins");  // این رو به ربات می‌فرستیم
-        });
-
-        // وقتی پرداخت موفق بود
-        tg.onEvent("invoiceClosed", (invoice) => {
-            if (invoice.status === "paid") {
-                alert("✅ پرداخت موفق! ۱۰ کوین اضافه شد.");
-                // دوباره موجودی رو بروزرسانی کن
-                tg.sendData("get_balance");
-            } else if (invoice.status === "cancelled") {
-                alert("❌ پرداخت لغو شد.");
-            }
-        });
-    </script>
+  <canvas id="gameCanvas" width="300" height="300"></canvas> <!-- viewport کوچک -->
+  <script src="app.js"></script>
 </body>
 </html>
