@@ -2,8 +2,8 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>بازی جنگل من</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>بازی جنگل پیکسلی</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; }
         canvas { display: block; }
@@ -15,25 +15,38 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
 
-        const cellSize = 600; // هر خانه بزرگ‌تر برای تصاویر بهتر
-        const mapWidth = cellSize * 3;
-        const mapHeight = cellSize * 3;
+        // اندازه نقشه (ثابت، اما اسکیل می‌شه)
+        const mapCells = 3;
+        let cellSize = Math.min(canvas.width, canvas.height) / mapCells * 1.5; // ریسپانسیو
+        const mapWidth = cellSize * mapCells;
+        const mapHeight = cellSize * mapCells;
 
-        // تصاویر
+        // تصاویر رایگان مستقیم
         const playerImg = new Image();
-        playerImg.src = 'https://img.craftpix.net/2024/07/Free-Base-4-Direction-Male-Character-Pixel-Art.webp'; // sprite sheet کاراکتر
+        playerImg.src = 'https://img.itch.zone/aW1hZ2UvMjgxMDUwOC8xNjc4NTgxNi5qcGc=/original/tphitC.jpg'; // sprite sheet کاراکتر
 
         const treeImg = new Image();
-        treeImg.src = 'https://opengameart.org/sites/default/files/free_peview_0.png'; // tileset با درخت‌ها (از نمونه درخت استفاده می‌کنه)
+        treeImg.src = 'https://opengameart.org/sites/default/files/free_peview_0.png'; // tileset درخت‌ها
 
         const marketImg = new Image();
         marketImg.src = 'https://img.craftpix.net/2025/08/Pixel-Art-Market-Square-RPG-Shop-and-NPC-Assets-Pack4-720x480.webp'; // غرفه بازار
 
-        // موقعیت کاراکتر
-        let player = { x: mapWidth / 2, y: mapHeight / 2, width: 64, height: 64, speed: 4, direction: 'down' };
+        // کاراکتر
+        let player = {
+            x: mapWidth / 2,
+            y: mapHeight / 2,
+            size: cellSize / 5, // ریسپانسیو
+            speed: cellSize / 150,
+            frame: 0,
+            direction: 'down' // down, up, left, right
+        };
         let target = { x: player.x, y: player.y };
         let camera = { x: 0, y: 0 };
 
@@ -43,37 +56,55 @@
 
         // درخت‌ها در جنگل بالا چپ
         const trees = [
-            { x: 200, y: 200, collected: false },
-            { x: 400, y: 150, collected: false },
-            { x: 150, y: 400, collected: false },
-            { x: 350, y: 350, collected: false }
+            { x: cellSize * 0.3, y: cellSize * 0.3, collected: false },
+            { x: cellSize * 0.7, y: cellSize * 0.2, collected: false },
+            { x: cellSize * 0.4, y: cellSize * 0.6, collected: false },
+            { x: cellSize * 0.6, y: cellSize * 0.5, collected: false }
         ];
 
-        // کلیک برای حرکت
-        canvas.addEventListener('click', (e) => {
+        // کلیک/تاچ
+        canvas.addEventListener('click', handleClick);
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            handleClick(e.touches[0]);
+        });
+
+        function handleClick(e) {
             const rect = canvas.getBoundingClientRect();
             target.x = e.clientX - rect.left + camera.x;
             target.y = e.clientY - rect.top + camera.y;
-        });
+        }
+
+        function updateSizes() {
+            cellSize = Math.min(canvas.width, canvas.height) / mapCells * 1.5;
+            player.size = cellSize / 5;
+            player.speed = cellSize / 150;
+            // به‌روزرسانی موقعیت درخت‌ها اگر لازم
+        }
 
         function gameLoop() {
-            // حرکت کاراکتر
+            updateSizes(); // برای ریسپانسیو در resize
+
+            // حرکت
             const dx = target.x - player.x;
             const dy = target.y - player.y;
             const dist = Math.hypot(dx, dy);
-            if (dist > 5) {
+            if (dist > 10) {
                 player.x += (dx / dist) * player.speed;
                 player.y += (dy / dist) * player.speed;
+                player.frame = (player.frame + 0.2) % 4; // انیمیشن راه رفتن
 
-                // جهت کاراکتر (ساده)
+                // جهت
                 if (Math.abs(dx) > Math.abs(dy)) {
                     player.direction = dx > 0 ? 'right' : 'left';
                 } else {
                     player.direction = dy > 0 ? 'down' : 'up';
                 }
+            } else {
+                player.frame = 0;
             }
 
-            // دوربین follow
+            // دوربین
             camera.x = player.x - canvas.width / 2;
             camera.y = player.y - canvas.height / 2;
             camera.x = Math.max(0, Math.min(camera.x, mapWidth - canvas.width));
@@ -82,14 +113,14 @@
             // پاک کردن
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // background جنگل
+            // background
             ctx.fillStyle = '#228B22';
             ctx.fillRect(-camera.x, -camera.y, mapWidth, mapHeight);
 
             // مرز خانه‌ها
             ctx.strokeStyle = '#000';
-            ctx.lineWidth = 6;
-            for (let i = 0; i <= 3; i++) {
+            ctx.lineWidth = cellSize / 50;
+            for (let i = 0; i <= mapCells; i++) {
                 ctx.beginPath();
                 ctx.moveTo(i * cellSize - camera.x, -camera.y);
                 ctx.lineTo(i * cellSize - camera.x, mapHeight - camera.y);
@@ -98,59 +129,57 @@
                 ctx.stroke();
             }
 
-            // رندر درخت‌ها (اگر لود شده)
+            // درخت‌ها
             if (treeImg.complete) {
                 trees.forEach(tree => {
                     if (!tree.collected) {
-                        ctx.drawImage(treeImg, 0, 0, 200, 200, tree.x - camera.x - 50, tree.y - camera.y - 100, 100, 150); // برش ساده از tileset
+                        ctx.drawImage(treeImg, 100, 100, 100, 150, tree.x - camera.x - player.size/2, tree.y - camera.y - player.size, player.size * 1.5, player.size * 2);
                     }
                 });
             }
 
-            // رندر بازار
-            if (marketImg.complete) {
-                ctx.drawImage(marketImg, 200 - camera.x, mapHeight - 300 - camera.y, 200, 150);
-            }
-
-            // جمع‌آوری چوب
+            // جمع چوب
             trees.forEach(tree => {
-                if (!tree.collected && Math.hypot(player.x - tree.x, player.y - tree.y) < 80) {
+                if (!tree.collected && Math.hypot(player.x - tree.x, player.y - tree.y) < player.size) {
                     wood += 1;
                     tree.collected = true;
                 }
             });
 
-            // فروش در بازار
+            // بازار
+            if (marketImg.complete) {
+                ctx.drawImage(marketImg, cellSize * 0.2 - camera.x, mapHeight - cellSize * 0.8 - camera.y, cellSize * 0.6, cellSize * 0.5);
+            }
+
+            // فروش
             if (player.x < cellSize && player.y > mapHeight - cellSize && wood > 0) {
                 coins += wood * 2;
                 wood = 0;
             }
 
-            // رندر کاراکتر (اگر لود شده - برش ساده down)
+            // کاراکتر (انیمیشن ساده: row جهت در sprite sheet)
             if (playerImg.complete) {
-                ctx.drawImage(playerImg, 0, 0, 64, 64, player.x - camera.x - 32, player.y - camera.y - 48, 64, 64);
-            } else {
-                // fallback ساده
-                ctx.fillStyle = '#00BFFF';
-                ctx.fillRect(player.x - camera.x - 32, player.y - camera.y - 32, 64, 64);
+                let row = player.direction === 'down' ? 0 : player.direction === 'up' ? 3 : player.direction === 'right' ? 2 : 1;
+                let col = Math.floor(player.frame);
+                ctx.drawImage(playerImg, col * 64, row * 64, 64, 64, player.x - camera.x - player.size/2, player.y - camera.y - player.size/2, player.size, player.size);
             }
 
-            // موجودی
+            // HUD موجودی
             ctx.fillStyle = '#FFF';
-            ctx.font = '30px Arial';
+            ctx.font = `${canvas.width / 20}px Arial`;
             ctx.fillText(`چوب: ${wood}   سکه: ${coins}`, 20, 50);
 
             requestAnimationFrame(gameLoop);
         }
 
-        // شروع بعد از لود تصاویر
-        Promise.all([new Promise(res => playerImg.onload = res), new Promise(res => treeImg.onload = res), new Promise(res => marketImg.onload = res)])
-            .then(() => gameLoop());
-
-        window.addEventListener('resize', () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        });
+        // شروع بعد لود تصاویر
+        window.onload = () => {
+            if (playerImg.complete && treeImg.complete && marketImg.complete) {
+                gameLoop();
+            } else {
+                playerImg.onload = treeImg.onload = marketImg.onload = gameLoop;
+            }
+        };
     </script>
 </body>
 </html>
